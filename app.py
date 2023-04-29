@@ -1,5 +1,5 @@
-from typing import Dict, List
-from flask import Flask, request, json
+from typing import Dict, List, Set
+from flask import Flask, request, json, Response
 from time import sleep
 from datetime import datetime, timedelta
 from opentelemetry.proto.trace.v1 import trace_pb2
@@ -7,7 +7,8 @@ from google.protobuf import text_format
 from google.protobuf.json_format import MessageToDict
 import json
 import pymongo
-from flask_cors import cross_origin
+import bson
+from flask_cors import cross_origin, CORS
 import re
 from pymongo_get_database import get_database
 db = get_database()
@@ -16,6 +17,38 @@ PORT = 8000
 
 
 app = Flask(__name__)
+CORS(app)
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        res = Response()
+        res.headers['X-Content-Type-Options'] = '*'
+        return res
+    
+# @app.after_request
+# def add_header(res):
+#     if res.method != "OPTIONS":
+#         res.headers['Access-Control-Allow-Origin'] = '*'
+#         return res
+
+
+
+@app.route('/get_trace_trees', methods=['POST'])
+@cross_origin()
+def get_trace_trees():
+    data = json.loads(request.data)
+    rootIds = data['rootIds']
+    rootIdToData = {}
+    for rootId in rootIds:
+        rootIdToData[rootId] = get_children_for_span_root(rootId)
+    return {'rootIdToData': rootIdToData}
+
+def get_children_for_span_root(rootId: str) -> List:
+    collection = db['OtelBackend']['Traces']
+    regex_string = re.compile(f'(,)?{rootId},([^.]+)')
+    traces_cursor = collection.find({'path': {'$regex': regex_string}}, projection={'_id': False})
+    return list(traces_cursor)
 
 # Change to GET - query parameters? 
 @app.route('/get_mean_response_time', methods=['POST'])
@@ -85,8 +118,6 @@ def traces():
 
     trace_dicts = get_trace_dicts(MessageToDict(trace))
 
-    print(db.list_database_names())
-
     collection = db['OtelBackend']['Traces']
     collection.insert_many(trace_dicts)
 
@@ -98,19 +129,28 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
 
     for resource in trace_data['resourceSpans']:
         for scope in resource['scopeSpans']:
+            spanIdToPath = {}
+            scope['spans'].sort(key=lambda s : int(s['startTimeUnixNano']))
             for span in scope['spans']:
-                dicts.append(get_trace_dict(span))
+                dicts.append(get_trace_dict(span, spanIdToPath))
 
     return dicts
 
 
-def get_trace_dict(trace: Dict) -> Dict:
+def get_trace_dict(trace: Dict, spanIdToPath: Dict) -> Dict:
     dict = {}
     dict['name'] = trace['name']
     dict['spanId'] = trace['spanId']
+    
+    # Add path for retieving whole span tree 
     if 'parentSpanId' in trace:
         dict['parentSpanId'] = trace['parentSpanId']
-
+        dict['path'] = spanIdToPath[dict['parentSpanId']] + ',' + trace['spanId']
+        spanIdToPath[dict['spanId']] = dict['path']
+    else:
+        dict['path'] = trace['spanId']
+        spanIdToPath[dict['spanId']] = dict['spanId']
+        
     dict['responseTime'] = (int(trace['endTimeUnixNano']) -
                          int(trace['startTimeUnixNano'])) / (10 ** 6)
     dict['timestamp'] = datetime.utcfromtimestamp(
