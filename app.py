@@ -38,17 +38,20 @@ def handle_preflight():
 @cross_origin()
 def get_trace_trees():
     data = json.loads(request.data)
-    rootIds = data['rootIds']
-    rootIdToData = {}
-    for rootId in rootIds:
-        rootIdToData[rootId] = get_children_for_span_root(rootId)
-    return {'rootIdToData': rootIdToData}
+    timesByPath = get_children_for_root(data['rootPath'])
+    return {'timesByPath': timesByPath}
 
-def get_children_for_span_root(rootId: str) -> List:
+def get_children_for_root(rootId: str) -> Dict:
     collection = db['OtelBackend']['Traces']
     regex_string = re.compile(f'(,)?{rootId},([^.]+)')
     traces_cursor = collection.find({'path': {'$regex': regex_string}}, projection={'_id': False})
-    return list(traces_cursor)
+    timesByPath = {}
+    for trace in traces_cursor:
+        if trace['path'] in timesByPath:
+            timesByPath[trace['path']].append(trace)
+        else:
+            timesByPath[trace['path']] = [trace]
+    return timesByPath
 
 # Change to GET - query parameters? 
 @app.route('/get_mean_response_time', methods=['POST'])
@@ -141,16 +144,6 @@ def get_trace_dict(trace: Dict, spanIdToPath: Dict) -> Dict:
     dict = {}
     dict['name'] = trace['name']
     dict['spanId'] = trace['spanId']
-    
-    # Add path for retieving whole span tree 
-    if 'parentSpanId' in trace:
-        dict['parentSpanId'] = trace['parentSpanId']
-        dict['path'] = spanIdToPath[dict['parentSpanId']] + ',' + trace['spanId']
-        spanIdToPath[dict['spanId']] = dict['path']
-    else:
-        dict['path'] = trace['spanId']
-        spanIdToPath[dict['spanId']] = dict['spanId']
-        
     dict['responseTime'] = (int(trace['endTimeUnixNano']) -
                          int(trace['startTimeUnixNano'])) / (10 ** 6)
     dict['timestamp'] = datetime.utcfromtimestamp(
@@ -170,6 +163,16 @@ def get_trace_dict(trace: Dict, spanIdToPath: Dict) -> Dict:
             dict['branch'] = attribute['value']['stringValue']
         elif attribute['key'] == 'message':
             dict['commit_message'] = attribute['value']['stringValue']
+            
+    # Add path for retieving whole span tree 
+    if 'parentSpanId' in trace:
+        dict['parentSpanId'] = trace['parentSpanId']
+        dict['path'] = spanIdToPath[dict['parentSpanId']] + ',' + dict['qualName'] + ':' + dict['file']
+    else:
+        dict['path'] = dict['qualName'] + ':' + dict['file']
+        
+    spanIdToPath[dict['spanId']] = dict['path']
+    
     return dict
 
 
