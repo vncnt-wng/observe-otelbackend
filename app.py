@@ -7,7 +7,6 @@ from google.protobuf import text_format
 from google.protobuf.json_format import MessageToDict
 import json
 import pymongo
-import bson
 from flask_cors import cross_origin, CORS
 import re
 from pymongo_get_database import get_database
@@ -151,9 +150,7 @@ def get_trace_dict(trace: Dict, spanIdToPath: Dict) -> Dict:
 
     dict['args'] = []
     for attribute in trace['attributes']:
-        if attribute['key'][:3] == 'arg':
-            dict['args'].append(attribute)
-        elif attribute['key'] == 'file':
+        if attribute['key'] == 'file':
             dict['file'] = attribute['value']['stringValue']
         elif attribute['key'] == 'qualName':
             dict['qualName'] = attribute['value']['stringValue']
@@ -163,6 +160,9 @@ def get_trace_dict(trace: Dict, spanIdToPath: Dict) -> Dict:
             dict['branch'] = attribute['value']['stringValue']
         elif attribute['key'] == 'message':
             dict['commit_message'] = attribute['value']['stringValue']
+        else:
+            # any other attribute is an arg
+            dict['args'].append(attribute)
             
     # Add path for retieving whole span tree 
     if 'parentSpanId' in trace:
