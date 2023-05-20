@@ -13,7 +13,7 @@ class ExecutionPathInfo:
 
 
 def get_trace_dicts(trace_data: Dict) -> List[Dict]:
-    json.dumps(trace_data)
+    print(json.dumps(trace_data, indent=4))
 
     dicts = []
 
@@ -22,16 +22,32 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
             # For
             spanIdToPath: Dict[str, str] = {}
             # Sort by start time so we always process classers before callees
-            scope["spans"].sort(key=lambda s: int(s["startTimeUnixNano"]))
+            print("=======Unsorted========")
+            print(json.dumps(scope["spans"], indent=4))
+            scope["spans"].sort(
+                key=lambda s: (
+                    int(s["startTimeUnixNano"]),
+                    -int(s["endTimeUnixNano"]),
+                )
+            )
             current_execution_path = {"#all_span_ids": set(), "#root": ""}
             all_execution_paths = []
+            print("=======Sorted========")
+            print(json.dumps(scope["spans"], indent=4))
             for span in scope["spans"]:
                 dict = get_standard_trace_dict(span)
 
                 func_id = dict["qualName"] + ":" + dict["file"]
+                print(dict)
+
+                parent = (
+                    span["parentSpanId"]
+                    if "parentSpanId" in span
+                    else (span["parentId"] if "parentId" in span else None)
+                )
 
                 # Add path for retieving whole span tree
-                if "parentSpanId" in span:
+                if parent and (True if "parentFromOtherService" not in dict else False):
                     dict["parentSpanId"] = span["parentSpanId"]
                     print(json.dumps(spanIdToPath))
                     dict["path"] = spanIdToPath[dict["parentSpanId"]] + "," + func_id
@@ -68,7 +84,7 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
 
             print(all_execution_paths)
 
-            if len(current_execution_path["#all_span_ids"]) > 1:
+            if len(current_execution_path["#all_span_ids"]) >= 1:
                 all_execution_paths = merge_execution_paths(
                     all_execution_paths, current_execution_path
                 )
@@ -104,6 +120,11 @@ def merge_execution_paths(all_execution_paths, current_execution_path) -> Dict:
     ]
     if not all(matches):
         all_execution_paths.append(current_execution_path)
+    else:
+        index = matches.index(True)
+        all_execution_paths[index]["#all_span_ids"].update(
+            current_execution_path["#all_span_ids"]
+        )
     print("merge")
     print(all_execution_paths)
 
@@ -146,6 +167,7 @@ def get_standard_trace_dict(trace: Dict):
     dict = {}
     dict["name"] = trace["name"]
     dict["spanId"] = trace["spanId"]
+    dict["traceId"] = trace["traceId"]
     dict["responseTime"] = (
         int(trace["endTimeUnixNano"]) - int(trace["startTimeUnixNano"])
     ) / (10**6)
@@ -163,6 +185,11 @@ def get_standard_trace_dict(trace: Dict):
             dict["branch"] = attribute["value"]["stringValue"]
         elif attribute["key"] == "message":
             dict["commit_message"] = attribute["value"]["stringValue"]
+        elif attribute["key"] == "parentFromOtherService":
+            dict["parentFromOtherService"] = attribute["value"]["boolValue"]
+            dict["parentSpanId"] = trace["parentSpanId"]
+        elif attribute["key"] == "childInOtherService":
+            dict["childInOtherService"] = attribute["value"]["boolValue"]
         else:
             # any other attribute is an arg
             dict["args"].append(attribute)

@@ -36,6 +36,63 @@ def handle_preflight():
 #         return res
 
 
+@app.route("/get_all_execution_paths", methods=["POST"])
+def get_all_execution_paths_accross_services():
+    data = json.loads(request.data)
+    # timesByPathByTree = get_children_for_root(data["rootPath"])
+
+    # print(rootId)
+    rootId = data["rootPath"]
+    collection = db["OtelBackend"]["Traces"]
+    regex_string = re.compile(f"([^.]+)?{re.escape(rootId)}([^.]+)?")
+    # Match anything
+    trace_ids = list(
+        collection.find(
+            {"executionPathString": {"$regex": regex_string}}, projection={"_id": False}
+        ).distinct("traceId")
+    )
+    print(
+        list(
+            collection.find(
+                {"executionPathString": {"$regex": regex_string}},
+                projection={"_id": False},
+            )
+        )
+    )
+
+    print(trace_ids)
+
+    # Dict[spanId, data]
+    spanIdToData = {}
+    # Dict[parentSpanId, List[childSpanId]]
+    remoteParentsToChildren = {}
+    # Dict[executionPathString, Dict[path, data]]
+    timesByPathByTree = {}
+
+    traces_cursor = collection.find(
+        {"traceId": {"$in": trace_ids}}, projection={"_id": False}
+    )
+    print(list(traces_cursor))
+
+    for trace in traces_cursor:
+        executionPathString = trace["executionPathString"]
+        if executionPathString in timesByPathByTree:
+            timesByPath = timesByPathByTree[executionPathString]
+            if trace["path"] in timesByPath:
+                timesByPath[trace["path"]].append(trace)
+            else:
+                timesByPath[trace["path"]] = [trace]
+        else:
+            timesByPathByTree[executionPathString] = {}
+            timesByPathByTree[executionPathString][trace["path"]] = [trace]
+        print(timesByPathByTree)
+    return {"timesByPathByTree": timesByPathByTree}
+
+
+def get_all_through_id(rootId: str) -> Dict:
+    pass
+
+
 @app.route("/get_trace_trees", methods=["POST"])
 @cross_origin()
 def get_trace_trees():
@@ -47,7 +104,7 @@ def get_trace_trees():
 def get_children_for_root(rootId: str) -> Dict:
     print(rootId)
     collection = db["OtelBackend"]["Traces"]
-    regex_string = re.compile(f"(,)?{rootId}([^.]+)?")
+    regex_string = re.compile(f"(,)?{re.escape(rootId)}([^.]+)?")
     traces_cursor = collection.find(
         {"path": {"$regex": regex_string}}, projection={"_id": False}
     )
