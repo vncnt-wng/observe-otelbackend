@@ -9,6 +9,7 @@ import pymongo
 from flask_cors import cross_origin, CORS
 import re
 from pymongo_get_database import get_database
+from functools import reduce
 
 from trace_processor import get_trace_dicts
 
@@ -51,46 +52,77 @@ def get_all_execution_paths_accross_services():
             {"executionPathString": {"$regex": regex_string}}, projection={"_id": False}
         ).distinct("traceId")
     )
-    print(
-        list(
-            collection.find(
-                {"executionPathString": {"$regex": regex_string}},
-                projection={"_id": False},
-            )
-        )
-    )
 
-    print(trace_ids)
-
+    # Dict[traceId, Set()]
+    traceIdToSpanIds = {}
     # Dict[spanId, data]
     spanIdToData = {}
     # Dict[parentSpanId, List[childSpanId]]
     remoteParentsToChildren = {}
-    # Dict[executionPathString, Dict[path, data]]
-    timesByPathByTree = {}
 
     traces_cursor = collection.find(
         {"traceId": {"$in": trace_ids}}, projection={"_id": False}
     )
-    print(list(traces_cursor))
 
+    ### First pass over traces, populate data structures for next section
     for trace in traces_cursor:
-        executionPathString = trace["executionPathString"]
-        if executionPathString in timesByPathByTree:
-            timesByPath = timesByPathByTree[executionPathString]
-            if trace["path"] in timesByPath:
-                timesByPath[trace["path"]].append(trace)
+        spanIdToData[trace["spanId"]] = trace
+
+        if "parentFromOtherService" in trace:
+            if trace["parentSpanId"] in remoteParentsToChildren:
+                remoteParentsToChildren[trace["parentSpanId"]].append(trace["spanId"])
             else:
-                timesByPath[trace["path"]] = [trace]
+                remoteParentsToChildren[trace["parentSpanId"]] = [trace["spanId"]]
+        elif "childInOtherService" in trace:
+            if trace["spanId"] not in remoteParentsToChildren:
+                remoteParentsToChildren[trace["spanId"]] = []
+
+        if trace["traceId"] in traceIdToSpanIds:
+            traceIdToSpanIds[trace["traceId"]].add(trace["spanId"])
         else:
-            timesByPathByTree[executionPathString] = {}
-            timesByPathByTree[executionPathString][trace["path"]] = [trace]
-        print(timesByPathByTree)
+            traceIdToSpanIds[trace["traceId"]] = set([trace["spanId"]])
+
+    ### Resolve links accross services
+    for parentId, childIds in remoteParentsToChildren.items():
+        parentData = spanIdToData[parentId]
+        oldExecutionPath = parentData["executionPathString"]
+        funcId = parentData["qualName"] + ":" + parentData["file"]
+
+        toReplace = funcId
+        alreadyHadChildren = False
+        # If path in parent service already has children
+        if funcId + "(" in oldExecutionPath:
+            toReplace += "("
+            alreadyHadChildren = True
+
+        additionalExecutionPath = ""
+        for i, id in enumerate(childIds):
+            additionalExecutionPath += spanIdToData[id]["executionPathString"]
+            if alreadyHadChildren or i != len(childIds) - 1:
+                additionalExecutionPath += "|"
+
+        if not alreadyHadChildren:
+            additionalExecutionPath = "(" + additionalExecutionPath + ")"
+
+        # combined execution path for trace
+        newExecutionPath = oldExecutionPath.replace(
+            toReplace, toReplace + additionalExecutionPath
+        )
+
+        # Update data from parent service
+        for id in traceIdToSpanIds[parentData["traceId"]]:
+            data = spanIdToData[id]
+            if id in childIds:
+                data["path"] = parentData["path"] + "," + data["path"]
+                data["executionPathString"] = newExecutionPath
+
+            elif data["executionPathString"] == oldExecutionPath:
+                data["executionPathString"] = newExecutionPath
+
+    timesByPathByTree = populate_times_by_path_by_tree(spanIdToData.values())
+    print(json.dumps(timesByPathByTree, indent=4, default=str))
+
     return {"timesByPathByTree": timesByPathByTree}
-
-
-def get_all_through_id(rootId: str) -> Dict:
-    pass
 
 
 @app.route("/get_trace_trees", methods=["POST"])
@@ -108,8 +140,12 @@ def get_children_for_root(rootId: str) -> Dict:
     traces_cursor = collection.find(
         {"path": {"$regex": regex_string}}, projection={"_id": False}
     )
+    return populate_times_by_path_by_tree(traces_cursor)
+
+
+def populate_times_by_path_by_tree(traces_iterable):
     timesByPathByTree = {}
-    for trace in traces_cursor:
+    for trace in traces_iterable:
         executionPathString = trace["executionPathString"]
         if executionPathString in timesByPathByTree:
             timesByPath = timesByPathByTree[executionPathString]
@@ -120,7 +156,6 @@ def get_children_for_root(rootId: str) -> Dict:
         else:
             timesByPathByTree[executionPathString] = {}
             timesByPathByTree[executionPathString][trace["path"]] = [trace]
-        print(timesByPathByTree)
     return timesByPathByTree
 
 

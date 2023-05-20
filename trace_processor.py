@@ -148,18 +148,12 @@ def generate_execution_path_string(curr: str, nodeChildren: Dict):
     execution_string = curr
 
     if curr in nodeChildren:
-        if len(nodeChildren[curr]) > 1:
-            execution_string += "("
-        else:
-            execution_string += ","
+        execution_string += "("
         for i, child in enumerate(nodeChildren[curr]):
             execution_string += generate_execution_path_string(child, nodeChildren)
             if i != len(nodeChildren[curr]) - 1:
                 execution_string += "|"
-        if len(nodeChildren[curr]) > 1:
-            execution_string += ")"
-    else:
-        execution_string += ";"
+        execution_string += ")"
     return execution_string
 
 
