@@ -10,6 +10,7 @@ from flask_cors import cross_origin, CORS
 import re
 from pymongo_get_database import get_database
 from functools import reduce
+from queue import PriorityQueue
 
 from trace_processor import get_trace_dicts
 
@@ -44,14 +45,18 @@ def get_all_execution_paths_accross_services():
 
     # print(rootId)
     rootId = data["rootPath"]
+    parts = rootId.split(":")
     collection = db["OtelBackend"]["Traces"]
     regex_string = re.compile(f"([^.]+)?{re.escape(rootId)}([^.]+)?")
-    # Match anything
+
+    # Get all traces through the chosen root
     trace_ids = list(
         collection.find(
-            {"executionPathString": {"$regex": regex_string}}, projection={"_id": False}
+            {"$and": [{"file": parts[1]}, {"qualName": parts[0]}]}
         ).distinct("traceId")
     )
+
+    print(trace_ids)
 
     # Dict[traceId, Set()]
     traceIdToSpanIds = {}
@@ -66,6 +71,7 @@ def get_all_execution_paths_accross_services():
 
     ### First pass over traces, populate data structures for next section
     for trace in traces_cursor:
+        print(trace)
         spanIdToData[trace["spanId"]] = trace
 
         if "parentFromOtherService" in trace:
@@ -82,10 +88,27 @@ def get_all_execution_paths_accross_services():
         else:
             traceIdToSpanIds[trace["traceId"]] = set([trace["spanId"]])
 
-    ### Resolve links accross services
+    parentToChildrenQueue = PriorityQueue()
+    # PQ sort remoteParentsToChildren by start time
+    # - To properly set execution paths, we need to
     for parentId, childIds in remoteParentsToChildren.items():
+        date = spanIdToData[parentId]["timestamp"].timestamp()
+        parentToChildrenQueue.put((date, (parentId, childIds)))
+
+    executionPathByTraceId: Dict[str, str] = {}
+
+    ### Resolve links accross service
+    while not parentToChildrenQueue.empty():
+        _, (parentId, childIds) = parentToChildrenQueue.get()
+        print(parentId)
+        print(childIds)
         parentData = spanIdToData[parentId]
-        oldExecutionPath = parentData["executionPathString"]
+        # oldExecutionPath = parentData["executionPathString"]
+        oldExecutionPath = (
+            executionPathByTraceId[parentData["traceId"]]
+            if parentData["traceId"] in executionPathByTraceId
+            else parentData["executionPathString"]
+        )
         funcId = parentData["qualName"] + ":" + parentData["file"]
 
         toReplace = funcId
@@ -109,15 +132,30 @@ def get_all_execution_paths_accross_services():
             toReplace, toReplace + additionalExecutionPath
         )
 
+        executionPathByTraceId[parentData["traceId"]] = newExecutionPath
+
+        print(oldExecutionPath)
+        print(toReplace)
+        print(toReplace + additionalExecutionPath)
+        print(alreadyHadChildren)
+        print(newExecutionPath)
+        # parentData["executionPathString"] = newExecutionPath
+
         # Update data from parent service
         for id in traceIdToSpanIds[parentData["traceId"]]:
             data = spanIdToData[id]
             if id in childIds:
                 data["path"] = parentData["path"] + "," + data["path"]
-                data["executionPathString"] = newExecutionPath
+            # if data["executionPathString"] == oldExecutionPath:
+            #     data["executionPathString"] = newExecutionPath
 
-            elif data["executionPathString"] == oldExecutionPath:
-                data["executionPathString"] = newExecutionPath
+    for spanData in spanIdToData.values():
+        if spanData["traceId"] in executionPathByTraceId:
+            spanData["executionPathString"] = executionPathByTraceId[
+                spanData["traceId"]
+            ]
+    # for traceId, executionPath in executionPathByTraceId:
+    #     if
 
     timesByPathByTree = populate_times_by_path_by_tree(spanIdToData.values())
     print(json.dumps(timesByPathByTree, indent=4, default=str))
@@ -217,7 +255,7 @@ def query_traces(qualName=None, filePath=None, prevDays=7) -> pymongo.cursor:
         query["qualName"] = qualName
     if filePath is not None:
         matchString = re.escape(filePath)
-        query["file"] = {"$regex": f".*{matchString}"}
+        query["file"] = {"$regex": f"([^.]+)?{matchString}"}
     collection = db["OtelBackend"]["Traces"]
 
     return collection.find(query, projection={"_id": False})
