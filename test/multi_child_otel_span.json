@@ -1,0 +1,258 @@
+{
+    "resourceSpans": [
+        {
+            "resource": {
+                "attributes": [
+                    {
+                        "key": "telemetry.sdk.language",
+                        "value": {
+                            "stringValue": "python"
+                        }
+                    },
+                    {
+                        "key": "telemetry.sdk.name",
+                        "value": {
+                            "stringValue": "opentelemetry"
+                        }
+                    },
+                    {
+                        "key": "telemetry.sdk.version",
+                        "value": {
+                            "stringValue": "1.16.0"
+                        }
+                    },
+                    {
+                        "key": "service.name",
+                        "value": {
+                            "stringValue": "test"
+                        }
+                    },
+                    {
+                        "key": "telemetry.auto.version",
+                        "value": {
+                            "stringValue": "0.37b0"
+                        }
+                    }
+                ]
+            },
+            "scopeSpans": [
+                {
+                    "scope": {
+                        "name": "trace_utils"
+                    },
+                    "spans": [
+                        {
+                            "traceId": "foZQPj9yZ+n52L8oq/7Xxw==",
+                            "spanId": "ScqN82fCOdc=",
+                            "parentSpanId": "vebyfznhGvY=",
+                            "name": "grandchild",
+                            "kind": "SPAN_KIND_INTERNAL",
+                            "startTimeUnixNano": "1684930646009898000",
+                            "endTimeUnixNano": "1684930646010011000",
+                            "attributes": [
+                                {
+                                    "key": "file",
+                                    "value": {
+                                        "stringValue": "app.py"
+                                    }
+                                },
+                                {
+                                    "key": "qualName",
+                                    "value": {
+                                        "stringValue": "grandchild"
+                                    }
+                                },
+                                {
+                                    "key": "commit_id",
+                                    "value": {
+                                        "stringValue": "e7f9b0c"
+                                    }
+                                },
+                                {
+                                    "key": "branch",
+                                    "value": {
+                                        "stringValue": "main"
+                                    }
+                                },
+                                {
+                                    "key": "message",
+                                    "value": {
+                                        "stringValue": "Commits bug sprayed cross service tracing"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        },
+                        {
+                            "traceId": "foZQPj9yZ+n52L8oq/7Xxw==",
+                            "spanId": "vebyfznhGvY=",
+                            "parentSpanId": "s7t9VSMidak=",
+                            "name": "child",
+                            "kind": "SPAN_KIND_INTERNAL",
+                            "startTimeUnixNano": "1684930646009656000",
+                            "endTimeUnixNano": "1684930646010087000",
+                            "attributes": [
+                                {
+                                    "key": "file",
+                                    "value": {
+                                        "stringValue": "app.py"
+                                    }
+                                },
+                                {
+                                    "key": "qualName",
+                                    "value": {
+                                        "stringValue": "child"
+                                    }
+                                },
+                                {
+                                    "key": "commit_id",
+                                    "value": {
+                                        "stringValue": "e7f9b0c"
+                                    }
+                                },
+                                {
+                                    "key": "branch",
+                                    "value": {
+                                        "stringValue": "main"
+                                    }
+                                },
+                                {
+                                    "key": "message",
+                                    "value": {
+                                        "stringValue": "Commits bug sprayed cross service tracing"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        },
+                        {
+                            "traceId": "foZQPj9yZ+n52L8oq/7Xxw==",
+                            "spanId": "6T1rMgzxcTY=",
+                            "parentSpanId": "bLDy0Yr7Ess=",
+                            "name": "grandchild",
+                            "kind": "SPAN_KIND_INTERNAL",
+                            "startTimeUnixNano": "1684930646010404000",
+                            "endTimeUnixNano": "1684930646010480000",
+                            "attributes": [
+                                {
+                                    "key": "file",
+                                    "value": {
+                                        "stringValue": "app.py"
+                                    }
+                                },
+                                {
+                                    "key": "qualName",
+                                    "value": {
+                                        "stringValue": "grandchild"
+                                    }
+                                },
+                                {
+                                    "key": "commit_id",
+                                    "value": {
+                                        "stringValue": "e7f9b0c"
+                                    }
+                                },
+                                {
+                                    "key": "branch",
+                                    "value": {
+                                        "stringValue": "main"
+                                    }
+                                },
+                                {
+                                    "key": "message",
+                                    "value": {
+                                        "stringValue": "Commits bug sprayed cross service tracing"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        },
+                        {
+                            "traceId": "foZQPj9yZ+n52L8oq/7Xxw==",
+                            "spanId": "bLDy0Yr7Ess=",
+                            "parentSpanId": "s7t9VSMidak=",
+                            "name": "child",
+                            "kind": "SPAN_KIND_INTERNAL",
+                            "startTimeUnixNano": "1684930646010225000",
+                            "endTimeUnixNano": "1684930646010501000",
+                            "attributes": [
+                                {
+                                    "key": "file",
+                                    "value": {
+                                        "stringValue": "app.py"
+                                    }
+                                },
+                                {
+                                    "key": "qualName",
+                                    "value": {
+                                        "stringValue": "child"
+                                    }
+                                },
+                                {
+                                    "key": "commit_id",
+                                    "value": {
+                                        "stringValue": "e7f9b0c"
+                                    }
+                                },
+                                {
+                                    "key": "branch",
+                                    "value": {
+                                        "stringValue": "main"
+                                    }
+                                },
+                                {
+                                    "key": "message",
+                                    "value": {
+                                        "stringValue": "Commits bug sprayed cross service tracing"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        },
+                        {
+                            "traceId": "foZQPj9yZ+n52L8oq/7Xxw==",
+                            "spanId": "s7t9VSMidak=",
+                            "name": "trace_test",
+                            "kind": "SPAN_KIND_INTERNAL",
+                            "startTimeUnixNano": "1684930646008931000",
+                            "endTimeUnixNano": "1684930646010516000",
+                            "attributes": [
+                                {
+                                    "key": "file",
+                                    "value": {
+                                        "stringValue": "app.py"
+                                    }
+                                },
+                                {
+                                    "key": "qualName",
+                                    "value": {
+                                        "stringValue": "trace_test"
+                                    }
+                                },
+                                {
+                                    "key": "commit_id",
+                                    "value": {
+                                        "stringValue": "e7f9b0c"
+                                    }
+                                },
+                                {
+                                    "key": "branch",
+                                    "value": {
+                                        "stringValue": "main"
+                                    }
+                                },
+                                {
+                                    "key": "message",
+                                    "value": {
+                                        "stringValue": "Commits bug sprayed cross service tracing"
+                                    }
+                                }
+                            ],
+                            "status": {}
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

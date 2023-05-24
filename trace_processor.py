@@ -14,8 +14,6 @@ import json
 
 
 def get_trace_dicts(trace_data: Dict) -> List[Dict]:
-    print(json.dumps(trace_data, indent=4))
-
     dicts = []
 
     for resource in trace_data["resourceSpans"]:
@@ -23,8 +21,8 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
             spanIdToPath: Dict[str, str] = {}
             # incompleteExecutionPathsByTrace: Dict[str, any] = {}
             # Sort by start time so we always process classers before callees
-            print("=======Unsorted========")
-            print(json.dumps(scope["spans"], indent=4))
+            # print("=======Unsorted========")
+            # print(json.dumps(scope["spans"], indent=4))
             scope["spans"].sort(
                 key=lambda s: (
                     int(s["startTimeUnixNano"]),
@@ -34,8 +32,8 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
             current_execution_path = {"#all_span_ids": set(), "#root": ""}
             all_execution_paths = []
 
-            print("=======Sorted========")
-            print(json.dumps(scope["spans"], indent=4))
+            # print("=======Sorted========")
+            # print(json.dumps(scope["spans"], indent=4))
             for span in scope["spans"]:
                 dict = get_standard_trace_dict(span)
 
@@ -57,11 +55,22 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
                     if parentName in current_execution_path:
                         if func_id not in current_execution_path[parentName]:
                             current_execution_path[parentName].append(func_id)
+                        else:
+                            repeats = sum(
+                                [
+                                    1 if otherFuncId.startswith(func_id) else 0
+                                    for otherFuncId in current_execution_path[
+                                        parentName
+                                    ]
+                                ]
+                            )
+                            current_execution_path[parentName].append(
+                                func_id + f"[{repeats}]"
+                            )
+                            dict["path"] += f"[{repeats}]"
                     else:
                         current_execution_path[parentName] = [func_id]
                 else:
-                    print("got here")
-                    print(current_execution_path)
                     if len(current_execution_path["#all_span_ids"]) >= 1:
                         print("merging")
                         all_execution_paths = merge_execution_paths(
@@ -76,7 +85,8 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
 
                 current_execution_path["#all_span_ids"].add(dict["spanId"])
                 spanIdToPath[dict["spanId"]] = dict["path"]
-
+                print(current_execution_path)
+                print(spanIdToPath)
                 dicts.append(dict)
             # all_execution_paths = []
             # print(incompleteExecutionPathsByTrace)

@@ -41,13 +41,10 @@ def handle_preflight():
 @app.route("/get_all_execution_paths", methods=["POST"])
 def get_all_execution_paths_accross_services():
     data = json.loads(request.data)
-    # timesByPathByTree = get_children_for_root(data["rootPath"])
 
-    # print(rootId)
     rootId = data["rootPath"]
     parts = rootId.split(":")
     collection = db["OtelBackend"]["Traces"]
-    regex_string = re.compile(f"([^.]+)?{re.escape(rootId)}([^.]+)?")
 
     # Get all traces through the chosen root
     trace_ids = list(
@@ -58,19 +55,22 @@ def get_all_execution_paths_accross_services():
 
     print(trace_ids)
 
+    traces_cursor = collection.find(
+        {"traceId": {"$in": trace_ids}}, projection={"_id": False}
+    )
+    timesByPathByTree = generate_cross_service_data(traces_iterable=traces_cursor)
+    return {"timesByPathByTree": timesByPathByTree}
+
+
+def generate_cross_service_data(traces_iterable):
     # Dict[traceId, Set()]
     traceIdToSpanIds = {}
     # Dict[spanId, data]
     spanIdToData = {}
     # Dict[parentSpanId, List[childSpanId]]
     remoteParentsToChildren = {}
-
-    traces_cursor = collection.find(
-        {"traceId": {"$in": trace_ids}}, projection={"_id": False}
-    )
-
     ### First pass over traces, populate data structures for next section
-    for trace in traces_cursor:
+    for trace in traces_iterable:
         print(trace)
         spanIdToData[trace["spanId"]] = trace
 
@@ -90,7 +90,7 @@ def get_all_execution_paths_accross_services():
 
     parentToChildrenQueue = PriorityQueue()
     # PQ sort remoteParentsToChildren by start time
-    # - To properly set execution paths, we need to
+    # - To properly create the execution path, we need to resolve upstream links before downstream
     for parentId, childIds in remoteParentsToChildren.items():
         date = spanIdToData[parentId]["timestamp"].timestamp()
         parentToChildrenQueue.put((date, (parentId, childIds)))
@@ -119,8 +119,20 @@ def get_all_execution_paths_accross_services():
             alreadyHadChildren = True
 
         additionalExecutionPath = ""
+        childFuncIdCounts = {}
         for i, id in enumerate(childIds):
-            additionalExecutionPath += spanIdToData[id]["executionPathString"]
+            childData = spanIdToData[id]
+            childFuncId = childData["qualName"] + ":" + childData["file"]
+            if childFuncId in childFuncIdCounts:
+                additionalExecutionPath += childData["executionPathString"].replace(
+                    childFuncId, f"{childFuncId}[{childFuncIdCounts[childFuncId]}]", 1
+                )
+                childData["path"] += f"[{childFuncIdCounts[childFuncId]}]"
+                childFuncIdCounts[childFuncId] += 1
+            else:
+                additionalExecutionPath += childData["executionPathString"]
+                childFuncIdCounts[childFuncId] = 1
+
             if alreadyHadChildren or i != len(childIds) - 1:
                 additionalExecutionPath += "|"
 
@@ -129,7 +141,7 @@ def get_all_execution_paths_accross_services():
 
         # combined execution path for trace
         newExecutionPath = oldExecutionPath.replace(
-            toReplace, toReplace + additionalExecutionPath
+            toReplace, toReplace + additionalExecutionPath, 1
         )
 
         executionPathByTraceId[parentData["traceId"]] = newExecutionPath
@@ -139,28 +151,20 @@ def get_all_execution_paths_accross_services():
         print(toReplace + additionalExecutionPath)
         print(alreadyHadChildren)
         print(newExecutionPath)
-        # parentData["executionPathString"] = newExecutionPath
 
         # Update data from parent service
         for id in traceIdToSpanIds[parentData["traceId"]]:
             data = spanIdToData[id]
             if id in childIds:
                 data["path"] = parentData["path"] + "," + data["path"]
-            # if data["executionPathString"] == oldExecutionPath:
-            #     data["executionPathString"] = newExecutionPath
 
     for spanData in spanIdToData.values():
         if spanData["traceId"] in executionPathByTraceId:
             spanData["executionPathString"] = executionPathByTraceId[
                 spanData["traceId"]
             ]
-    # for traceId, executionPath in executionPathByTraceId:
-    #     if
 
-    timesByPathByTree = populate_times_by_path_by_tree(spanIdToData.values())
-    print(json.dumps(timesByPathByTree, indent=4, default=str))
-
-    return {"timesByPathByTree": timesByPathByTree}
+    return populate_times_by_path_by_tree(spanIdToData.values())
 
 
 @app.route("/get_trace_trees", methods=["POST"])
