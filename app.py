@@ -44,7 +44,7 @@ def get_all_execution_paths_accross_services():
 
     rootId = data["rootPath"]
     parts = rootId.split(":")
-    collection = db["OtelBackend"]["Traces"]
+    collection = db["OtelBackend"]["TracesDemo"]
 
     # Get all traces through the chosen root
     trace_ids = list(
@@ -71,7 +71,7 @@ def generate_cross_service_data(traces_iterable):
     remoteParentsToChildren = {}
     ### First pass over traces, populate data structures for next section
     for trace in traces_iterable:
-        print(trace)
+        # print(trace)
         spanIdToData[trace["spanId"]] = trace
 
         if "parentFromOtherService" in trace:
@@ -87,6 +87,9 @@ def generate_cross_service_data(traces_iterable):
             traceIdToSpanIds[trace["traceId"]].add(trace["spanId"])
         else:
             traceIdToSpanIds[trace["traceId"]] = set([trace["spanId"]])
+
+    print(remoteParentsToChildren)
+    print(traceIdToSpanIds)
 
     parentToChildrenQueue = PriorityQueue()
     # PQ sort remoteParentsToChildren by start time
@@ -152,10 +155,16 @@ def generate_cross_service_data(traces_iterable):
         print(alreadyHadChildren)
         print(newExecutionPath)
 
+        otherServiceRoots = [
+            spanIdToData[childId]["path"].split(",")[0] for childId in childIds
+        ]
+
         # Update data from parent service
         for id in traceIdToSpanIds[parentData["traceId"]]:
             data = spanIdToData[id]
-            if id in childIds:
+            rootInService = data["path"].split(",")[0]
+            # if id in childIds:
+            if rootInService in otherServiceRoots:
                 data["path"] = parentData["path"] + "," + data["path"]
 
     for spanData in spanIdToData.values():
@@ -177,7 +186,7 @@ def get_trace_trees():
 
 def get_children_for_root(rootId: str) -> Dict:
     print(rootId)
-    collection = db["OtelBackend"]["Traces"]
+    collection = db["OtelBackend"]["TracesDemo"]
     regex_string = re.compile(f"(,)?{re.escape(rootId)}([^.]+)?")
     traces_cursor = collection.find(
         {"path": {"$regex": regex_string}}, projection={"_id": False}
@@ -260,20 +269,20 @@ def query_traces(qualName=None, filePath=None, prevDays=7) -> pymongo.cursor:
     if filePath is not None:
         matchString = re.escape(filePath)
         query["file"] = {"$regex": f"([^.]+)?{matchString}"}
-    collection = db["OtelBackend"]["Traces"]
+    collection = db["OtelBackend"]["TracesDemo"]
 
     return collection.find(query, projection={"_id": False})
 
 
 @app.route("/v1/traces", methods=["POST"])
 def traces():
-    trace = trace_pb2.TracesData()
-    trace.ParseFromString(request.data)
+    # trace = trace_pb2.TracesData()
+    # trace.ParseFromString(request.data)
 
-    trace_dicts = get_trace_dicts(MessageToDict(trace))
+    # trace_dicts = get_trace_dicts(MessageToDict(trace))
 
-    collection = db["OtelBackend"]["Traces"]
-    collection.insert_many(trace_dicts)
+    # collection = db["OtelBackend"]["TracesDemo"]
+    # collection.insert_many(trace_dicts)
 
     return "OK", 200
 

@@ -7,7 +7,7 @@ from app import generate_cross_service_data
 
 
 def test_multi_service_multi_child():
-    file = "flame_multi_service_multi_child.json"
+    file = "flame_demo_test.json"
     f = open(file)
     data = json.load(f)
     f.close()

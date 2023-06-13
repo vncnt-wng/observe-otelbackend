@@ -20,7 +20,7 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
         for scope in resource["scopeSpans"]:
             spanIdToPath: Dict[str, str] = {}
             # incompleteExecutionPathsByTrace: Dict[str, any] = {}
-            # Sort by start time so we always process classers before callees
+            # Sort by start time so we always process callers before callees
             # print("=======Unsorted========")
             # print(json.dumps(scope["spans"], indent=4))
             scope["spans"].sort(
@@ -50,6 +50,7 @@ def get_trace_dicts(trace_data: Dict) -> List[Dict]:
                 if parent and "parentFromOtherService" not in dict:
                     dict["parentSpanId"] = span["parentSpanId"]
                     print(json.dumps(spanIdToPath))
+                    print(json.dumps(dict, default=str))
                     dict["path"] = spanIdToPath[dict["parentSpanId"]] + "," + func_id
                     parentName = spanIdToPath[dict["parentSpanId"]].split(",")[-1]
                     if parentName in current_execution_path:

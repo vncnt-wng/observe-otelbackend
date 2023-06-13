@@ -1,0 +1,110 @@
+{
+    "get_other_albums_from_artists:flask-main/app.py(get_artists_on_album:flask-album/app.py(AlbumsManager.get_artists_on_album:flask-album/albums_manager.py)|get_other_albums_for_artist:flask-album/app.py(AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py))": {
+        "get_other_albums_from_artists:flask-main/app.py,get_artists_on_album:flask-album/app.py": [
+            {
+                "name": "get_artists_on_album",
+                "spanId": "Bt+j1vCtFbg=",
+                "traceId": "rNhb+/6a7gkN5nU2mg+OyQ==",
+                "responseTime": 9.743,
+                "timestamp": "2023-06-01 19:54:20.654000",
+                "args": [],
+                "parentFromOtherService": true,
+                "parentSpanId": "IfDfSZVYHHI=",
+                "file": "flask-album/app.py",
+                "qualName": "get_artists_on_album",
+                "commit_id": "fa9b423",
+                "branch": "master",
+                "commit_message": "initial commit",
+                "path": "get_other_albums_from_artists:flask-main/app.py,get_artists_on_album:flask-album/app.py",
+                "executionPathString": "get_other_albums_from_artists:flask-main/app.py(get_artists_on_album:flask-album/app.py(AlbumsManager.get_artists_on_album:flask-album/albums_manager.py)|get_other_albums_for_artist:flask-album/app.py(AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py))"
+            }
+        ],
+        "get_artists_on_album:flask-album/app.py,AlbumsManager.get_artists_on_album:flask-album/albums_manager.py": [
+            {
+                "name": "get_artists_on_album",
+                "spanId": "gaV6uKsVBL0=",
+                "traceId": "rNhb+/6a7gkN5nU2mg+OyQ==",
+                "responseTime": 8.894,
+                "timestamp": "2023-06-01 19:54:20.655000",
+                "args": [
+                    {
+                        "key": "albumId",
+                        "value": {
+                            "intValue": "4"
+                        }
+                    }
+                ],
+                "file": "flask-album/albums_manager.py",
+                "qualName": "AlbumsManager.get_artists_on_album",
+                "commit_id": "fa9b423",
+                "branch": "master",
+                "commit_message": "initial commit",
+                "parentSpanId": "Bt+j1vCtFbg=",
+                "path": "get_artists_on_album:flask-album/app.py,AlbumsManager.get_artists_on_album:flask-album/albums_manager.py",
+                "executionPathString": "get_other_albums_from_artists:flask-main/app.py(get_artists_on_album:flask-album/app.py(AlbumsManager.get_artists_on_album:flask-album/albums_manager.py)|get_other_albums_for_artist:flask-album/app.py(AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py))"
+            }
+        ],
+        "get_other_albums_from_artists:flask-main/app.py,get_other_albums_for_artist:flask-album/app.py": [
+            {
+                "name": "get_other_albums_for_artist",
+                "spanId": "0hBxSqrbAuM=",
+                "traceId": "rNhb+/6a7gkN5nU2mg+OyQ==",
+                "responseTime": 20.726,
+                "timestamp": "2023-06-01 19:54:20.667000",
+                "args": [],
+                "parentFromOtherService": true,
+                "parentSpanId": "IfDfSZVYHHI=",
+                "file": "flask-album/app.py",
+                "qualName": "get_other_albums_for_artist",
+                "commit_id": "fa9b423",
+                "branch": "master",
+                "commit_message": "initial commit",
+                "path": "get_other_albums_from_artists:flask-main/app.py,get_other_albums_for_artist:flask-album/app.py",
+                "executionPathString": "get_other_albums_from_artists:flask-main/app.py(get_artists_on_album:flask-album/app.py(AlbumsManager.get_artists_on_album:flask-album/albums_manager.py)|get_other_albums_for_artist:flask-album/app.py(AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py))"
+            }
+        ],
+        "get_other_albums_for_artist:flask-album/app.py,AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py": [
+            {
+                "name": "get_albums_by_artist",
+                "spanId": "J3u9J37L7+o=",
+                "traceId": "rNhb+/6a7gkN5nU2mg+OyQ==",
+                "responseTime": 20.155,
+                "timestamp": "2023-06-01 19:54:20.668000",
+                "args": [
+                    {
+                        "key": "artist_name",
+                        "value": {
+                            "stringValue": "Kilo Davies"
+                        }
+                    }
+                ],
+                "file": "flask-album/albums_manager.py",
+                "qualName": "AlbumsManager.get_albums_by_artist",
+                "commit_id": "fa9b423",
+                "branch": "master",
+                "commit_message": "initial commit",
+                "parentSpanId": "0hBxSqrbAuM=",
+                "path": "get_other_albums_for_artist:flask-album/app.py,AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py",
+                "executionPathString": "get_other_albums_from_artists:flask-main/app.py(get_artists_on_album:flask-album/app.py(AlbumsManager.get_artists_on_album:flask-album/albums_manager.py)|get_other_albums_for_artist:flask-album/app.py(AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py))"
+            }
+        ],
+        "get_other_albums_from_artists:flask-main/app.py": [
+            {
+                "name": "get_other_albums_from_artists",
+                "spanId": "IfDfSZVYHHI=",
+                "traceId": "rNhb+/6a7gkN5nU2mg+OyQ==",
+                "responseTime": 344.027,
+                "timestamp": "2023-06-01 19:54:20.626000",
+                "args": [],
+                "file": "flask-main/app.py",
+                "qualName": "get_other_albums_from_artists",
+                "commit_id": "fa9b423",
+                "branch": "master",
+                "commit_message": "initial commit",
+                "childInOtherService": true,
+                "path": "get_other_albums_from_artists:flask-main/app.py",
+                "executionPathString": "get_other_albums_from_artists:flask-main/app.py(get_artists_on_album:flask-album/app.py(AlbumsManager.get_artists_on_album:flask-album/albums_manager.py)|get_other_albums_for_artist:flask-album/app.py(AlbumsManager.get_albums_by_artist:flask-album/albums_manager.py))"
+            }
+        ]
+    }
+}
