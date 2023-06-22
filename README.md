@@ -1,5 +1,9 @@
 # observe-otelbackend
 
+Repository of the OpenTelemetry backend
+
+
+
 noteable files: 
 
 ```app.py``` - all span API endponints
