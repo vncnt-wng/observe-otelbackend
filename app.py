@@ -38,8 +38,8 @@ def handle_preflight():
 #         return res
 
 
-@app.route("/get_all_execution_paths", methods=["POST"])
-def get_all_execution_paths_accross_services():
+@app.route("/get_whole_distributed_trace_breakdown", methods=["POST"])
+def get_whole_distributed_trace_breakdown():
     data = json.loads(request.data)
 
     rootId = data["rootPath"]
@@ -53,7 +53,7 @@ def get_all_execution_paths_accross_services():
         ).distinct("traceId")
     )
 
-    print(trace_ids)
+    # print(trace_ids)
 
     traces_cursor = collection.find(
         {"traceId": {"$in": trace_ids}}, projection={"_id": False}
@@ -88,8 +88,8 @@ def generate_cross_service_data(traces_iterable):
         else:
             traceIdToSpanIds[trace["traceId"]] = set([trace["spanId"]])
 
-    print(remoteParentsToChildren)
-    print(traceIdToSpanIds)
+    # print(remoteParentsToChildren)
+    # print(traceIdToSpanIds)
 
     parentToChildrenQueue = PriorityQueue()
     # PQ sort remoteParentsToChildren by start time
@@ -103,8 +103,8 @@ def generate_cross_service_data(traces_iterable):
     ### Resolve links accross service
     while not parentToChildrenQueue.empty():
         _, (parentId, childIds) = parentToChildrenQueue.get()
-        print(parentId)
-        print(childIds)
+        # print(parentId)
+        # print(childIds)
         parentData = spanIdToData[parentId]
         # oldExecutionPath = parentData["executionPathString"]
         oldExecutionPath = (
@@ -149,11 +149,11 @@ def generate_cross_service_data(traces_iterable):
 
         executionPathByTraceId[parentData["traceId"]] = newExecutionPath
 
-        print(oldExecutionPath)
-        print(toReplace)
-        print(toReplace + additionalExecutionPath)
-        print(alreadyHadChildren)
-        print(newExecutionPath)
+        # print(oldExecutionPath)
+        # print(toReplace)
+        # print(toReplace + additionalExecutionPath)
+        # print(alreadyHadChildren)
+        # print(newExecutionPath)
 
         otherServiceRoots = [
             spanIdToData[childId]["path"].split(",")[0] for childId in childIds
@@ -176,9 +176,9 @@ def generate_cross_service_data(traces_iterable):
     return populate_times_by_path_by_tree(spanIdToData.values())
 
 
-@app.route("/get_trace_trees", methods=["POST"])
+@app.route("/get_descendant_trace_breakdown", methods=["POST"])
 @cross_origin()
-def get_trace_trees():
+def get_descendant_trace_breakdown():
     data = json.loads(request.data)
     timesByPathByTree = get_children_for_root(data["rootPath"])
     return {"timesByPathByTree": timesByPathByTree}
@@ -260,7 +260,6 @@ def get_all_for_functon():
 
 
 def query_traces(qualName=None, filePath=None, prevDays=7) -> pymongo.cursor:
-    # TODO include file path in call
     query_date_start = datetime.now() - timedelta(days=prevDays)
 
     query = {"timestamp": {"$gte": query_date_start}}
@@ -276,13 +275,13 @@ def query_traces(qualName=None, filePath=None, prevDays=7) -> pymongo.cursor:
 
 @app.route("/v1/traces", methods=["POST"])
 def traces():
-    # trace = trace_pb2.TracesData()
-    # trace.ParseFromString(request.data)
+    trace = trace_pb2.TracesData()
+    trace.ParseFromString(request.data)
 
-    # trace_dicts = get_trace_dicts(MessageToDict(trace))
+    trace_dicts = get_trace_dicts(MessageToDict(trace))
 
-    # collection = db["OtelBackend"]["TracesDemo"]
-    # collection.insert_many(trace_dicts)
+    collection = db["OtelBackend"]["TracesDemo"]
+    collection.insert_many(trace_dicts)
 
     return "OK", 200
 
